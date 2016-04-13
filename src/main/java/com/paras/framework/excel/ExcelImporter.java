@@ -25,6 +25,7 @@ import com.paras.framework.excel.base.ColumnToFieldMapping;
 import com.paras.framework.excel.exception.ImportException;
 import com.paras.framework.excel.exception.NoFieldInClassException;
 import com.paras.framework.excel.exception.NoMappingProvidedException;
+import com.paras.framework.excel.exception.NoSimpleSetterDefined;
 import com.paras.framework.excel.exception.UnSupportedCellContentException;
 
 /**
@@ -250,14 +251,29 @@ public class ExcelImporter<T> {
 		return null;
 	}
 
-	private Method getSetter( String field ) {
+	private Method getSetter( String field ) throws NoSimpleSetterDefined {
 		Method[] methods = type.getDeclaredMethods();
 		String setterName = getSetterName( field );
-
+		boolean methodFound = false;
+		Method setter = null;
+		
 		for( Method method : methods ) {
 			if( setterName.equals( method.getName() )) {
-				return method;
+				
+				methodFound = true;
+				if( isSimpleSetterType( method )) {
+					setter = method;
+					break;
+				}
 			}
+		}
+		
+		if( methodFound && setter != null ) {
+			return setter;
+		}
+		
+		if( methodFound && setter == null ) {
+			throw new NoSimpleSetterDefined( field );
 		}
 
 		return null;
@@ -265,5 +281,29 @@ public class ExcelImporter<T> {
 
 	private String getSetterName( String field ) {
 		return "set" + StringUtils.capitalize( field );
+	}
+	
+	private boolean isSimpleSetterType( Method method ) {
+		
+		@SuppressWarnings("rawtypes")
+		Class firstParam = method.getParameterTypes()[0];
+		
+		if( Integer.class.equals( firstParam )) {
+			return true;
+		} else if( Character.class.equals( firstParam )) {
+			return true;
+		} else if( Boolean.class.equals( firstParam )) {
+			return true;
+		} else if( Long.class.equals( firstParam )) {
+			return true;
+		} else if( String.class.equals( firstParam )) {
+			return true;
+		} else if( Double.class.equals( firstParam )) {
+			return true;
+		} else if( Float.class.equals( firstParam )) {
+			return true;
+		}
+		
+		return false;
 	}
 }
