@@ -146,7 +146,8 @@ public class ExcelImporter<T> {
 					while( cells.hasNext() ) {
 
 						Method method = methods[ columnIndex++ ];
-
+						LOGGER.info( "In ExcelImporter | In extract | Calling " + method.getName() + " with first parameter class " + method.getParameterTypes()[0].getName() );
+						 
 						Cell cell = cells.next();
 
 						CellReference cellRef = new CellReference( row.getRowNum(), cell.getColumnIndex() );
@@ -154,8 +155,14 @@ public class ExcelImporter<T> {
 
 						switch( cell.getCellType()) {
 							case Cell.CELL_TYPE_STRING : 
-								String str = cell.getRichStringCellValue().getString();
-								method.invoke( rowDataHolder, str );
+								
+								String str = cell.getStringCellValue().trim();
+								
+								if( str.isEmpty() || StringUtils.isEmpty( str ) || StringUtils.isBlank( str ) || str.equals( " ")) {
+									method.invoke( rowDataHolder );
+								} else {
+									method.invoke( rowDataHolder, str );
+								}
 	
 								break;
 	
