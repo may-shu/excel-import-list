@@ -139,63 +139,83 @@ public class ExcelImporter<T> {
 				if( rowIndex == FIRST ) {
 					continue;
 				} else {
+					
+					LOGGER.info( "In ExcelImporter | In Extract | Going for row index " + row.getRowNum());
 
 					int columnIndex = 0;
-					Iterator<Cell> cells = row.cellIterator();
+					int mappingSize = mappings.length;
+					
+					while( columnIndex < mappingSize ) {					
 
-					while( cells.hasNext() ) {
-
-						Method method = methods[ columnIndex++ ];
+						Method method = methods[ columnIndex ];
 						LOGGER.info( "In ExcelImporter | In extract | Calling " + method.getName() + " with first parameter class " + method.getParameterTypes()[0].getName() );
 						 
-						Cell cell = cells.next();
+						Cell cell = row.getCell(columnIndex, Row.RETURN_BLANK_AS_NULL );
 
-						CellReference cellRef = new CellReference( row.getRowNum(), cell.getColumnIndex() );
-						cellRef.formatAsString();
-
-						switch( cell.getCellType()) {
-							case Cell.CELL_TYPE_STRING : 
-								
-								String str = cell.getStringCellValue().trim();
-								
-								if( str.isEmpty() || StringUtils.isEmpty( str ) || StringUtils.isBlank( str ) || str.equals( " ")) {
-									method.invoke( rowDataHolder );
-								} else {
-									method.invoke( rowDataHolder, str );
-								}
+						if( cell != null ) {
+							
+							CellReference cellRef = new CellReference( row.getRowNum(), cell.getColumnIndex() );
+							cellRef.formatAsString();
 	
-								break;
-	
-							case Cell.CELL_TYPE_NUMERIC : 
-								if( DateUtil.isCellDateFormatted( cell )) {
-	
-									Date date = cell.getDateCellValue();
-									method.invoke( rowDataHolder, date );
-	
-								} else {
-	
-									Double num = cell.getNumericCellValue();
-	
-									Class setterClass = method.getParameterTypes()[0];
-	
-									if( Long.class.equals( setterClass )) {									
-										method.invoke( rowDataHolder, Math.round( num ));
-	
-									} else if( Integer.class.equals( setterClass )) {
-										method.invoke( rowDataHolder, new Integer( (int) Math.round( num )));
+							switch( cell.getCellType()) {
+								case Cell.CELL_TYPE_STRING : 
+									
+									String str = cell.getStringCellValue().trim();
+									
+									if( str.isEmpty() || StringUtils.isEmpty( str ) || StringUtils.isBlank( str ) || str.equals( " ")) {
+										method.invoke( rowDataHolder );
+									} else {
+										
+										if( Long.TYPE.equals( method.getParameterTypes()[0].getClass())) {
+											method.invoke( rowDataHolder, Long.valueOf( str ));
+										}
+										method.invoke( rowDataHolder, str );
+										
 									}
-	
-								}
-								break;
-	
-							case Cell.CELL_TYPE_BOOLEAN :
-								Boolean flag = cell.getBooleanCellValue();
-								method.invoke( rowDataHolder, flag );
-								break;
-	
-							default:
-								throw new UnSupportedCellContentException( cell.getCellType() );
+		
+									break;
+		
+								case Cell.CELL_TYPE_NUMERIC : 
+									if( DateUtil.isCellDateFormatted( cell )) {
+		
+										Date date = cell.getDateCellValue();
+										method.invoke( rowDataHolder, date );
+		
+									} else {
+		
+										Double num = cell.getNumericCellValue();
+		
+										Class setterClass = method.getParameterTypes()[0];
+		
+										if( Long.class.equals( setterClass )) {									
+											method.invoke( rowDataHolder, Math.round( num ));
+		
+										} else if( Integer.class.equals( setterClass )) {
+											method.invoke( rowDataHolder, new Integer( (int) Math.round( num )));
+										}
+		
+									}
+									break;
+		
+								case Cell.CELL_TYPE_BOOLEAN :
+									
+									Boolean flag = cell.getBooleanCellValue();
+									
+									if( Boolean.class.getName().equals( method.getParameterTypes()[0].getName())) {
+									
+										method.invoke( rowDataHolder, flag );
+										
+									}
+									
+									method.invoke( rowDataHolder, String.valueOf( flag ));
+									break;
+		
+								default:
+									throw new UnSupportedCellContentException( cell.getCellType() );
+							}
 						}
+						
+						columnIndex++;
 
 					}
 
